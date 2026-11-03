@@ -98,8 +98,6 @@ const AccountsTable = {
             <thead>
                 <tr>
                     <th>Nickname</th>
-                    <th>JX_CHARACTER_ID</th>
-                    <th>JX_SESSION_ID</th>
                     <th>JX_DISPLAY_NAME</th>
                     <th>Action</th>
                 </tr>
@@ -107,8 +105,6 @@ const AccountsTable = {
             <tbody>
                 <tr v-for="(account, nickname) in accounts" :key="nickname">
                     <td>{{ nickname }}</td>
-                    <td>{{ account.JX_CHARACTER_ID }}</td>
-                    <td>{{ account.JX_SESSION_ID }}</td>
                     <td>{{ account.JX_DISPLAY_NAME }}</td>
                     <td>
                         <button class="btn btn-success btn-sm me-2" @click="$emit('launch', nickname)">Launch</button>
