@@ -1,31 +1,28 @@
-import socket
 from pathlib import Path
 
+from account_launcher.account_launcher import AccountLauncher
 from flask import Flask
 
 from .routes.routes import setup_routes
 from .services.account_manager import AccountManager
-from .services.daemon_manager import DaemonManager
-from .services.discovery_server import DiscoveryServer
 
 
 class WebServer:
-    def __init__(self, server_port: int = 5000):
+    def __init__(
+        self,
+        account_launcher: AccountLauncher,
+        host: str = "127.0.0.1",
+        port: int = 5000,
+    ):
         self.app = Flask(__name__)
-        self.server_ip = socket.gethostbyname(socket.gethostname())
-        self.server_port = server_port
+        self.host = host
+        self.port = port
         self.data_path = Path(__file__).parent.parent.resolve() / "data"
 
-        self.daemon_manager = DaemonManager()
+        self.account_launcher = account_launcher
         self.account_manager = AccountManager(self.data_path)
-        self.discovery_server = DiscoveryServer(self.server_ip, self.server_port)
 
-        setup_routes(self.app, self.daemon_manager, self.account_manager)
+        setup_routes(self.app, self.account_manager, self.account_launcher)
 
-    def run(self, host: str = None, port: int = None):
-        self.discovery_server.run_broadcast_thread()
-        self.daemon_manager.run_check_daemons_thread()
-
-        host = host or self.server_ip
-        port = port or self.server_port
-        self.app.run(host=host, port=port)
+    def run(self):
+        self.app.run(host=self.host, port=self.port)

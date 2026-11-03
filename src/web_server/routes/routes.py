@@ -1,32 +1,17 @@
+from account_launcher.account_launcher import AccountLauncher, JagexAccount
 from flask import jsonify, render_template, request
 from loguru import logger
 from web_server.services.account_manager import AccountManager
-from web_server.services.daemon_manager import Daemon, DaemonManager
 
 
-def setup_routes(app, daemon_manager: DaemonManager, account_manager: AccountManager):
+def setup_routes(app, account_manager: AccountManager, account_launcher: AccountLauncher):
     @app.route("/")
     def index():
         return render_template(
             "index.html",
-            daemons=daemon_manager.get_daemons(),
             accounts=account_manager.get_accounts(),
             notification={},
         )
-
-    @app.route("/heartbeat")
-    def heartbeat():
-        logger.debug("Sending server is alive response")
-        return jsonify({"status": "success", "message": "Server is alive"}), 200
-
-    @app.route("/get_daemons", methods=["GET"])
-    def get_daemons():
-        logger.debug("Returning list of daemons in json format.")
-        daemon_list = [
-            {"nickname": d.nickname, "ip_address": d.ip_address, "port": d.port}
-            for d in daemon_manager.get_daemons()
-        ]
-        return jsonify(daemon_list)
 
     @app.route("/get_accounts", methods=["GET"])
     def get_accounts():
@@ -71,23 +56,19 @@ def setup_routes(app, daemon_manager: DaemonManager, account_manager: AccountMan
     @app.route("/launch_account", methods=["POST"])
     def launch_account():
         account_id = request.json["account_id"]
-        daemon_nickname = request.json["daemon_nickname"]
-        logger.info(f"Launching account: {account_id} on daemon: {daemon_nickname}")
-        
+        logger.info(f"Launching account: {account_id}")
+
         try:
             account_data = account_manager.get_accounts()[account_id]
-            return jsonify(daemon_manager.launch_account(account_data, daemon_nickname))
+            jagex_account = JagexAccount(
+                JX_CHARACTER_ID=account_data["JX_CHARACTER_ID"],
+                JX_SESSION_ID=account_data["JX_SESSION_ID"],
+                JX_DISPLAY_NAME=account_data["JX_DISPLAY_NAME"],
+                JX_REFRESH_TOKEN=account_data.get("JX_REFRESH_TOKEN", ""),
+                JX_ACCESS_TOKEN=account_data.get("JX_ACCESS_TOKEN", ""),
+            )
+            account_launcher.launch_account(jagex_account)
+            return jsonify({"status": "success", "message": "Account launched"}), 200
         except Exception as e:
             logger.exception("Failed to launch account.")
             return jsonify({"status": "error", "message": str(e)}), 500
-
-    @app.route("/register_daemon", methods=["POST"])
-    def register_daemon():
-        data = request.json
-        new_daemon = Daemon(
-            nickname=data["nickname"],
-            ip_address=data["ip_address"],
-            port=data["port"],
-        )
-        daemon_manager.add_daemon(new_daemon)
-        return jsonify({"status": "success", "message": f"Daemon {new_daemon.nickname} registered"}), 200

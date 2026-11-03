@@ -1,11 +1,8 @@
 import json
 import sys
-import threading
-import time
 from pathlib import Path
 
 from account_launcher.account_launcher import AccountLauncher
-from daemon.daemon import Daemon
 from loguru import logger
 from web_server.app import WebServer
 
@@ -19,29 +16,15 @@ def main() -> None:
     logger.remove()
     logger.add(sys.stderr, level=settings["log_level"].upper())
 
-    threads = []
+    logger.info("Initializing web server")
+    account_launcher = AccountLauncher(settings=settings)
+    web_server = WebServer(account_launcher=account_launcher)
 
-    if settings["server"]["enabled"]:
-        logger.info("Initializing web server")
-        web_server = WebServer()
-        web_server_thread = threading.Thread(target=web_server.run, daemon=True)
-        web_server_thread.start()
-        threads.append(web_server_thread)
-
-    if settings["daemon"]["enabled"]:
-        logger.info("Initializing daemon")
-        account_launcher = AccountLauncher(settings=settings)
-        daemon = Daemon(settings=settings, account_launcher=account_launcher)
-        daemon_thread = threading.Thread(target=daemon.run, daemon=True)
-        daemon_thread.start()
-        threads.append(daemon_thread)
-
-    while True:
-        try:
-            time.sleep(1)
-        except KeyboardInterrupt:
-            logger.info("Got keyboard interrupt, exiting.")
-            sys.exit(0)
+    try:
+        web_server.run()
+    except KeyboardInterrupt:
+        logger.info("Got keyboard interrupt, exiting.")
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()

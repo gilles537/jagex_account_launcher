@@ -1,17 +1,13 @@
 const API = {
-    async fetchDaemons() {
-        return await fetch('/get_daemons').then(res => res.json());
-    },
-
     async fetchAccounts() {
         return await fetch('/get_accounts').then(res => res.json());
     },
 
-    async launchAccount(accountId, daemonNickname) {
+    async launchAccount(accountId) {
         return await fetch('/launch_account', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ account_id: accountId, daemon_nickname: daemonNickname }),
+            body: JSON.stringify({ account_id: accountId }),
         }).then(res => res.json());
     },
 
